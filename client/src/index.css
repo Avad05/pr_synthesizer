@@ -1,0 +1,262 @@
+:root {
+  --bg: #11141a;
+  --surface: #171b24;
+  --surface-raised: #1d222e;
+  --border: #2a3140;
+  --text: #e6e9ef;
+  --text-muted: #8b95a7;
+
+  --accent: #f2b84b;
+  --pending: #6b7686;
+  --working: #f2b84b;
+  --completed: #5fcb8c;
+  --failed: #f2786b;
+
+  --font-display: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-display);
+  -webkit-font-smoothing: antialiased;
+}
+
+.app {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 24px 64px;
+}
+
+.app-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 32px 0 24px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 32px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text);
+  text-decoration: none;
+  letter-spacing: -0.01em;
+}
+
+.logo-mark {
+  color: var(--accent);
+}
+
+.tagline {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+h1 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0 0 20px;
+}
+
+h2 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin: 4px 0 24px;
+}
+
+h3 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  margin: 0 0 12px;
+}
+
+a {
+  color: var(--accent);
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+}
+
+.status-text {
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.status-text-error {
+  color: var(--failed);
+}
+
+/* Review table */
+
+.review-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.review-table th,
+.review-table td {
+  text-align: left;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.review-table th {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  background: var(--surface-raised);
+}
+
+.review-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.review-table tbody tr:hover {
+  background: var(--surface-raised);
+}
+
+.review-table a {
+  color: var(--text);
+  text-decoration: none;
+}
+
+.review-table a:hover {
+  color: var(--accent);
+}
+
+/* Status badges */
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+}
+
+.status-badge::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.status-pending {
+  color: var(--pending);
+}
+
+.status-working {
+  color: var(--working);
+}
+
+.status-completed {
+  color: var(--completed);
+}
+
+.status-failed {
+  color: var(--failed);
+}
+
+/* Review detail */
+
+.back-link {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  margin-bottom: 24px;
+}
+
+.back-link:hover {
+  color: var(--accent);
+}
+
+.review-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 0;
+}
+
+.review-detail-header h1 {
+  margin-bottom: 0;
+}
+
+.pr-number {
+  color: var(--text-muted);
+}
+
+.summary-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  line-height: 1.7;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Empty / error states */
+
+.empty-state {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 32px;
+}
+
+.empty-state h2 {
+  color: var(--text);
+  margin-top: 0;
+}
+
+.empty-state code {
+  font-family: var(--font-mono);
+  background: var(--surface-raised);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.85em;
+}

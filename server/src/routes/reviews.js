@@ -1,6 +1,6 @@
 import express from 'express';
 import { pool } from '../db.js';
-
+import { analyzeDiff } from '../gemini.js';
 const router = express.Router();
 
 // GET /api/reviews - list all PR reviews, most recent first
@@ -36,7 +36,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /api/reviews - create a new review record
-// Phase 2 will call this once it has a real diff to review.
+
 router.post('/', async (req, res) => {
   const { repo_name, pr_number, pr_title, status = 'pending', summary = null } = req.body;
 
@@ -82,6 +82,39 @@ router.patch('/:id', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to update review' });
+  }
+});
+
+router.post('/:id/analyze', async (req, res) => {
+  const { diff } = req.body;
+
+  if (!diff) {
+    return res.status(400).json({ error: 'diff is required in request body' });
+  }
+
+  try {
+    // Mark as working before calling Gemini (this matters more in Phase 6,
+    // but it's good practice now)
+    await pool.query(`UPDATE pr_reviews SET status = 'working' WHERE id = $1`, [req.params.id]);
+
+    const { issues, summary } = await analyzeDiff(diff);
+    console.log('Gemini result:', JSON.stringify({ issues, summary }, null, 2));
+
+    // Turn the issues array into the same text format your seed data used
+    const summaryText = issues.length === 0
+      ? summary
+      : `${summary}\n\n` + issues.map(i => `[${i.severity.toUpperCase()}] ${i.title}\n${i.description}\n(${i.line_hint})`).join('\n\n');
+
+    const result = await pool.query(
+      `UPDATE pr_reviews SET status = 'completed', summary = $1, updated_at = now() WHERE id = $2 RETURNING *`,
+      [summaryText, req.params.id]
+    );
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    await pool.query(`UPDATE pr_reviews SET status = 'failed' WHERE id = $1`, [req.params.id]);
+    res.status(500).json({ error: 'Analysis failed', details: err.message });
   }
 });
 

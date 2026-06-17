@@ -1,0 +1,22 @@
+diff --git a/server/src/controllers/productController.js b/server/src/controllers/productController.js
+index 1a2b3c4..5d6e7f8 100644
+--- a/server/src/controllers/productController.js
++++ b/server/src/controllers/productController.js
+@@ -10,8 +10,8 @@ export async function createProduct(req, res) {
+-  const { name, price, categoryId } = req.body;
++  const { name, price, category_id } = req.body;
+
+   const result = await pool.query(
+     `INSERT INTO products (name, price, category_id) VALUES ($1, $2, $3) RETURNING *`,
+-    [name, price, categoryId]
++    [name, price, category_id]
+   );
+
+@@ -25,6 +25,9 @@ export async function getProductsByCategory(req, res) {
+   const result = await pool.query('SELECT * FROM products WHERE category_id = $1', [categoryId]);
+
++  for (let i = 0; i <= result.rows.length; i++) {
++    console.log(result.rows[i].name);
++  }
+   res.json(result.rows);
+ }

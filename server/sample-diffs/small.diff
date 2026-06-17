@@ -1,0 +1,13 @@
+diff --git a/client/src/App.jsx b/client/src/App.jsx
+index 5ddefeb..411f0d0 100644
+--- a/client/src/App.jsx
++++ b/client/src/App.jsx
+@@ -10,7 +10,7 @@ export default function App() {
+           <span className="logo-mark">▣</span>
+           PR Synthesizer
+         </Link>
+-        <span className="tagline">mission control</span>
++        <span className="tagline">Mission Control</span>
+       </header>
+ 
+       <main className="app-main">

@@ -10,7 +10,7 @@ export default function App() {
           <span className="logo-mark">▣</span>
           PR Synthesizer
         </Link>
-        <span className="tagline">mission control</span>
+        <span className="tagline">Mission Control</span>
       </header>
 
       <main className="app-main">

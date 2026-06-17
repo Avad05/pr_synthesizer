@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 
 import reviewsRouter from './routes/reviews.js';
+import webhooksRouter from './routes/webhook.js';
 
 dotenv.config();
 
@@ -16,6 +17,7 @@ app.get('/api/health', (req, res) => {
 });
 
 app.use('/api/reviews', reviewsRouter);
+app.use('/api/webhooks', webhooksRouter);
 
 const PORT = process.env.PORT || 5000;
 

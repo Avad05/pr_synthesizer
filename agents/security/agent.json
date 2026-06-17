@@ -1,0 +1,12 @@
+{
+    "name": "SecurityAgent",
+    "version": "1.0.0",
+    "description": "Scans code diffs for security vulnerabilities, exposed secrets, and dependency risks.",
+    "service_endpoint_url": "http://localhost:5001/a2a",
+    "capabilities": [
+        {
+      "skill": "security_review",
+      "description": "Analyzes a git diff for SQL injection, exposed API keys, and vulnerable patterns."
+    }
+    ]
+}

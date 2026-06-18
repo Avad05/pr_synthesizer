@@ -51,11 +51,15 @@ app.post('/a2a', async (req, res) => {
 });
 
 
-const SECURITY_PROMPT = `You are a security-focused code review agent. Analyze this git diff for:
-- Hardcoded secrets, API keys, passwords, or tokens
-- SQL injection vulnerabilities (string concatenation in queries)
-- Use of eval(), dangerouslySetInnerHTML, or other dangerous functions
-- Any other security risks introduced by the diff
+const SECURITY_PROMPT = `You are a security-focused code review agent.
+Analyze this diff ONLY for:
+- Hardcoded secrets, API keys, passwords, or tokens in source code
+- Authentication flaws (weak hashing cost factors, insecure JWT handling)
+- Sensitive data leakage (logging tokens, returning stack traces to clients)
+- Missing input validation or authorization checks
+
+Do NOT flag SQL queries or database patterns — those are handled by a separate agent.
+
 
 Respond with ONLY a JSON object, no markdown, matching this exact shape:
 {

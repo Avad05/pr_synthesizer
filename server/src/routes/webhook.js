@@ -46,14 +46,22 @@ router.post('/github', async (req, res) => {
         console.log(`Fetched diff, length:${diffText.length} chars`);
 
         //Running it through Gemini.
+        const [securityResult, databaseResult] = await Promise.all([
+          dispatchToAgent('http://localhost:5001', diffText),
+          dispatchToAgent('http://localhost:5002', diffText)
+        ])
 
-        const  {issues, summary} = await dispatchToAgent('http://localhost:5001', diffText);
-
-          const summaryText = issues.length === 0
-      ? summary
-      : `${summary}\n\n` + issues
+        const allIssues = [
+          ...(securityResult.issues || []),
+          ...(databaseResult.issues || [])
+        ];
+         
+        const summaryText = `SECURITY AGENT:\n${securityResult.summary}\n\nDATABASE AGENT:\n${databaseResult.summary}`
+          + (allIssues.length > 0
+           ? '\n\n' + allIssues
           .map(i => `[${i.severity.toUpperCase()}] ${i.title}\n${i.description}\n(${i.line_hint})`)
-          .join('\n\n');
+          .join('\n\n')
+            : '');
 
        await pool.query(
       `UPDATE pr_reviews

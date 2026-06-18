@@ -4,6 +4,33 @@ import {dispatchToAgent} from '../a2a-client.js';
 
 const router = express.Router();
 
+function splitDiff(fullDiff) {
+  const lines = fullDiff.split('\n');
+  
+  const dbKeywords = ['schema', 'migration', 'prisma', 'query', 'select', 
+                      'insert', 'update', 'delete', 'from', 'where', 'table',
+                      'index', 'sql'];
+  
+  const secKeywords = ['secret', 'key', 'token', 'password', 'auth', 
+                       'jwt', 'bcrypt', 'hash', 'env', 'credential', 'log'];
+
+  // A line is relevant if it's a diff header OR matches the keywords
+  const dbLines = lines.filter(l => 
+    l.startsWith('diff') || l.startsWith('@@') || l.startsWith('---') || l.startsWith('+++') ||
+    dbKeywords.some(kw => l.toLowerCase().includes(kw))
+  );
+
+  const secLines = lines.filter(l =>
+    l.startsWith('diff') || l.startsWith('@@') || l.startsWith('---') || l.startsWith('+++') ||
+    secKeywords.some(kw => l.toLowerCase().includes(kw))
+  );
+
+  return {
+    forSecurity: secLines.join('\n') || fullDiff,
+    forDatabase: dbLines.join('\n') || fullDiff
+  };
+}
+
 router.post('/github', async (req, res) => {
     const event = req.headers['x-github-event'];
 
@@ -46,10 +73,11 @@ router.post('/github', async (req, res) => {
         console.log(`Fetched diff, length:${diffText.length} chars`);
 
         //Running it through Gemini.
-        const [securityResult, databaseResult] = await Promise.all([
-          dispatchToAgent('http://localhost:5001', diffText),
-          dispatchToAgent('http://localhost:5002', diffText)
-        ])
+       const { forSecurity, forDatabase } = splitDiff(diffText);
+       const [securityResult, databaseResult] = await Promise.all([
+         dispatchToAgent('http://localhost:5001', forSecurity),
+         dispatchToAgent('http://localhost:5002', forDatabase)
+       ]);
 
         const allIssues = [
           ...(securityResult.issues || []),

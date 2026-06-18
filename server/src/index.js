@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 
 import reviewsRouter from './routes/reviews.js';
 import webhooksRouter from './routes/webhook.js';
+import './queue.js';
 
 dotenv.config();
 

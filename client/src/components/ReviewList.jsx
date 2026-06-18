@@ -13,7 +13,20 @@ export default function ReviewList() {
       .then(setReviews)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, []);
+
+      const eventSource = new EventSource("/api/reviews/stream");
+      eventSource.onmessage = (event) => {
+      const update = JSON.parse(event.data);
+      console.log('SSE update received:', update);
+      getReviews().then(setReviews);
+      };
+
+    eventSource.onerror = () => {
+    console.warn('SSE connection lost');
+    };
+
+    return () => eventSource.close();
+}, []);
 
   if (loading) return <p className="status-text">Loading reviews…</p>;
 

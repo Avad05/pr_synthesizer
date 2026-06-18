@@ -2,7 +2,30 @@ import express from 'express';
 import { pool } from '../db.js';
 import { analyzeDiff } from '../gemini.js';
 const router = express.Router();
+const clients = new Set();
 
+router.get('/stream', (req, res) => {
+  // Set headers for SSE
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+
+  // Register this client
+  clients.add(res);
+  console.log(`SSE client connected. Total: ${clients.size}`);
+
+  // Remove client when they disconnect.
+  req.on('close', () => {
+    clients.delete(res);
+    console.log(`SSE client disconnected. Total: ${clients.size}`);
+  });
+});
+
+export function broadcastReviewUpdate(data) {
+  const message = `data: ${JSON.stringify(data)}\n\n`;
+  clients.forEach(client => client.write(message));
+}
 // GET /api/reviews - list all PR reviews, most recent first
 router.get('/', async (req, res) => {
   try {

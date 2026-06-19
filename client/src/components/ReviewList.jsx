@@ -61,6 +61,12 @@ export default function ReviewList() {
           <option value="completed">Completed</option>
           <option value="failed">Failed</option>
         </select>
+        <button 
+           className="refresh-btn"
+           onClick={() => getReviews().then(setReviews)}
+         >
+           ↻ Refresh
+        </button>
       </div>
 
       {filtered.length === 0 ? (

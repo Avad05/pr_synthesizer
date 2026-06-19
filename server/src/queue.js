@@ -1,11 +1,16 @@
 import {Queue, Worker} from 'bullmq';
-const connection = { host:'localhost', port: 6379 };
+const connection = { 
+      host: process.env.REDIS_HOST || 'localhost',
+      port: parseInt(process.env.REDIS_PORT) || 6379
+ };
 
 export const reviewQueue = new Queue('pr-reviews', {connection});
 import { broadcastReviewUpdate } from './routes/reviews.js';
 import {pool} from './db.js';
 import { dispatchToAgent } from './a2a-client.js';
 import { postPRComment, formatReviewComment} from './github.js';
+const SECURITY_AGENT_URL = process.env.SECURITY_AGENT_URL || 'http://localhost:5001';
+const DATABASE_AGENT_URL = process.env.DATABASE_AGENT_URL || 'http://localhost:5002';
 
 export const reviewWorker = new Worker('pr-reviews', async (job) =>{
     const {reviewId, diffUrl, repoName, prNumber} = job.data;
@@ -29,8 +34,8 @@ export const reviewWorker = new Worker('pr-reviews', async (job) =>{
     //Running it through Gemini.
     const { forSecurity, forDatabase } = splitDiff(diffText);
     const [securityResult, databaseResult] = await Promise.all([
-      dispatchToAgent('http://localhost:5001', forSecurity),
-      dispatchToAgent('http://localhost:5002', forDatabase)
+      dispatchToAgent(SECURITY_AGENT_URL, forSecurity),
+      dispatchToAgent(DATABASE_AGENT_URL, forDatabase)
     ]);
     
     const allIssues = [

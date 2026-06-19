@@ -9,6 +9,9 @@ CREATE TABLE IF NOT EXISTS pr_reviews (
   status        TEXT NOT NULL DEFAULT 'pending'
                   CHECK (status IN ('pending', 'working', 'completed', 'failed')),
   summary       TEXT,
+  high_count    INTEGER DEFAULT 0,
+  medium_count  INTEGER DEFAULT 0,
+  low_count     INTEGER DEFAULT 0,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );

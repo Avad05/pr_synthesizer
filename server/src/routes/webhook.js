@@ -1,18 +1,24 @@
 import express from 'express';
 import {pool} from '../db.js';
-import {dispatchToAgent} from '../a2a-client.js';
+//import {dispatchToAgent} from '../a2a-client.js';
 import { reviewQueue } from '../queue.js';
+import crypto from 'crypto';
 
 const router = express.Router();
 
 router.post('/github', async (req, res) => {
-    const event = req.headers['x-github-event'];
 
-    if(event !== 'pull_request'){
-        return res.status(200).send('Event ignored');
+    if (!verifyGitHubSignature(req)) {
+    console.log('Secret loaded:', process.env.GITHUB_WEBHOOK_SECRET ? 'YES' : 'NO - MISSING');
+    console.warn('Invalid webhook signature — request rejected');
+    return res.status(401).send('Unauthorized');
     }
-         
-    const { action, pull_request, repository } = req.body;
+    const payload = JSON.parse(req.body); // parse once
+    const event = req.headers['x-github-event'];
+    if(event !== 'pull_request'){
+      return res.status(200).send('Event ignored');
+    }
+    const { action, pull_request, repository } = payload;
 
     if(action !== 'opened' && action !== 'synchronize'){
         return res.status(200).send('Action ignored');
@@ -25,8 +31,18 @@ router.post('/github', async (req, res) => {
 
     res.status(200).send('accepted');
 
+    const existing = await pool.query(
+      'SELECT id FROM pr_reviews WHERE repo_name = $1 AND pr_number = $2',
+      [repoName, prNumber]
+        );
+    
+    if (existing.rows.length > 0) {
+      console.log(`Review already exists for ${repoName} PR #${prNumber} — skipping`);
+      return; // already processed
+    }
+
     try {
-  const insertResult = await pool.query(
+     const insertResult = await pool.query(
     `INSERT INTO pr_reviews (repo_name, pr_number, pr_title, status)
      VALUES ($1, $2, $3, 'pending') RETURNING *`,
     [repoName, prNumber, prTitle]
@@ -46,5 +62,27 @@ router.post('/github', async (req, res) => {
   console.error('Webhook error:', err.message);
 }
 });
+
+function verifyGitHubSignature(req) {
+  const signature = req.headers['x-hub-signature-256'];
+  if (!signature) return false;
+  
+  const secret = process.env.GITHUB_WEBHOOK_SECRET;
+  if (!secret) return false;
+
+  const expected = `sha256=${crypto
+    .createHmac('sha256', secret)
+    .update(req.body)
+    .digest('hex')}`;
+
+  try {
+    return crypto.timingSafeEqual(
+      Buffer.from(signature),
+      Buffer.from(expected)
+    );
+  } catch {
+    return false;
+  }
+}
 
 export default router;

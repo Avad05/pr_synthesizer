@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-
+import crypto from 'crypto';
 import reviewsRouter from './routes/reviews.js';
 import webhooksRouter from './routes/webhook.js';
 import './queue.js';
@@ -9,8 +9,12 @@ import './queue.js';
 dotenv.config();
 
 const app = express();
-
 app.use(cors());
+
+// MUST be before express.json() — captures raw body for webhook signature verification
+app.use('/api/webhooks', express.raw({ type: 'application/json' }));
+
+// JSON parsing for all other routes
 app.use(express.json());
 
 app.get('/api/health', (req, res) => {

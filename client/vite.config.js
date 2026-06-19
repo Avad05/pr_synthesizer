@@ -7,7 +7,11 @@ export default defineConfig({
     port: 5173,
     proxy: {
       // Forward /api/* calls to the Express server during development
-      '/api': 'http://localhost:5000',
+      '/api': {
+        target: process.env.VITE_API_URL || 'http://localhost:5000',
+        changeOrigin: true,
+        ws: true
+      },
     },
   },
 });

@@ -5,6 +5,7 @@ export const reviewQueue = new Queue('pr-reviews', {connection});
 import { broadcastReviewUpdate } from './routes/reviews.js';
 import {pool} from './db.js';
 import { dispatchToAgent } from './a2a-client.js';
+import { postPRComment, formatReviewComment} from './github.js';
 
 export const reviewWorker = new Worker('pr-reviews', async (job) =>{
     const {reviewId, diffUrl, repoName, prNumber} = job.data;
@@ -37,6 +38,10 @@ export const reviewWorker = new Worker('pr-reviews', async (job) =>{
       ...(databaseResult.issues || [])
     ];
 
+    const highCount = allIssues.filter(i => i.severity === 'high').length;
+    const mediumCount = allIssues.filter(i => i.severity === 'medium').length;
+    const lowCount = allIssues.filter(i => i.severity === 'low').length;
+
     const summaryText = 
     `SECURITY AGENT:\n${securityResult.summary}\n\nDATABASE AGENT:\n${databaseResult.summary}` +
     (allIssues.length > 0
@@ -47,9 +52,15 @@ export const reviewWorker = new Worker('pr-reviews', async (job) =>{
       
 
       await pool.query(
-        `UPDATE pr_reviews SET status = 'completed', summary = $1, updated_at = now() WHERE id = $2`,
-      [summaryText, reviewId]
+        `UPDATE pr_reviews SET status = 'completed', summary = $1, high_count = $2, medium_count = $3, low_count = $4, updated_at = now() WHERE id = $5`,
+      [summaryText, highCount, mediumCount, lowCount, reviewId]
     );
+
+        // Post comment to GitHub PR
+    const commentBody = formatReviewComment(securityResult, databaseResult);
+    await postPRComment(repoName, prNumber, commentBody);
+    console.log(`Posted review comment on ${repoName} PR #${prNumber}`);
+
     broadcastReviewUpdate({ reviewId, status: 'completed' });
     console.log(`Review #${reviewId} completed. `);
 

@@ -72,9 +72,8 @@ async def process_task(task_id: str, diff: str):
     except Exception as e:
         tasks[task_id] = {"id": task_id, "status": "failed", "error": str(e)}
 
-
 async def analyze_database_issues(diff: str):
-prompt = """You are a database-focused code review agent.
+    prompt = """You are a database-focused code review agent.
 Analyze this git diff for:
 - Unsafe SQL queries (raw string concatenation, $queryRawUnsafe with template literals)
 - Dangerous migrations (DROP TABLE/COLUMN without backup)

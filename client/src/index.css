@@ -260,3 +260,49 @@ a {
   border-radius: 4px;
   font-size: 0.85em;
 }
+
+
+/* ReviewList */
+.list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.list-header h1 {
+  margin: 0;
+}
+
+.filter-select {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.issue-counts {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.count-high, .count-medium, .count-low {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+}
+
+.issues-clean {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--completed);
+}

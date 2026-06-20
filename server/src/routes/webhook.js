@@ -31,25 +31,27 @@ router.post('/github', async (req, res) => {
 
     res.status(200).send('accepted');
 
-    const existing = await pool.query(
-      'SELECT id FROM pr_reviews WHERE repo_name = $1 AND pr_number = $2',
-      [repoName, prNumber]
-        );
-    
-    if (existing.rows.length > 0) {
-      console.log(`Review already exists for ${repoName} PR #${prNumber} — skipping`);
-      return; // already processed
-    }
+ try {
+  // Idempotency check
+  const existing = await pool.query(
+    'SELECT id FROM pr_reviews WHERE repo_name = $1 AND pr_number = $2',
+    [repoName, prNumber]
+  );
 
-    try {
-     const insertResult = await pool.query(
+  if (existing.rows.length > 0) {
+    console.log(`Review already exists for ${repoName} PR #${prNumber} — skipping`);
+    return;
+  }
+
+  // Insert
+  const insertResult = await pool.query(
     `INSERT INTO pr_reviews (repo_name, pr_number, pr_title, status)
      VALUES ($1, $2, $3, 'pending') RETURNING *`,
     [repoName, prNumber, prTitle]
   );
+
   const reviewId = insertResult.rows[0].id;
 
-  // Just enqueue — worker handles the rest
   await reviewQueue.add('analyze-pr', {
     reviewId,
     diffUrl,

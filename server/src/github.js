@@ -27,10 +27,12 @@ export async function postPRComment(repoFullName, prNumber, body) {
 }
 
 // Formating the comment, so no raw data is sent.
-export function formatReviewComment(securityResult, databaseResult) {
+export function formatReviewComment(securityResult, databaseResult, performanceResult) {
   const allIssues = [
     ...(securityResult.issues || []).map(i => ({ ...i, agent: 'Security' })),
-    ...(databaseResult.issues || []).map(i => ({ ...i, agent: 'Database' }))
+    ...(databaseResult.issues || []).map(i => ({ ...i, agent: 'Database' })),
+    ...(performanceResult.issues || []).map(i => ({ ...i, agent: 'Performance' }))
+
   ];
 
   const severityEmoji = { high: '🔴', medium: '🟡', low: '🟢' };
@@ -39,6 +41,7 @@ export function formatReviewComment(securityResult, databaseResult) {
 
   comment += `### Security Agent\n${securityResult.summary}\n\n`;
   comment += `### Database Agent\n${databaseResult.summary}\n\n`;
+  comment += `### Performance Agent *(${performanceResult.model_used || 'unknown model'})*\n${performanceResult.summary}\n\n`;
 
   if (allIssues.length > 0) {
     comment += `### Issues Found\n\n`;
@@ -50,10 +53,11 @@ export function formatReviewComment(securityResult, databaseResult) {
       comment += '\n';
     });
   } else {
-    comment += `###  No issues found\n`;
+    comment += `### ✅ No issues found\n`;
   }
 
-  comment += `---\n*Reviewed by PR Synthesizer — powered by Gemini*`;
+  comment += `---\n*Reviewed by PR Synthesizer — Security & Database powered by Gemini · Performance powered by GPT OSS 120B via OpenRouter*`;
 
   return comment;
+
 }

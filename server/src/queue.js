@@ -67,7 +67,7 @@ export const reviewWorker = new Worker('pr-reviews', async (job) =>{
     );
 
         // Post comment to GitHub PR
-    const commentBody = formatReviewComment(securityResult, databaseResult);
+    const commentBody = formatReviewComment(securityResult, databaseResult, performanceResult);
     await postPRComment(repoName, prNumber, commentBody);
     console.log(`Posted review comment on ${repoName} PR #${prNumber}`);
 
@@ -77,7 +77,7 @@ export const reviewWorker = new Worker('pr-reviews', async (job) =>{
     return { reviewId, status: 'completed' };
 }, {connection});
 
-// Function to split the diff into security and database relevant parts
+// Function to split the diff into security, database, performance relevant parts
 function splitDiff(fullDiff) {
   const lines = fullDiff.split('\n');
 

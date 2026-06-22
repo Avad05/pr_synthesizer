@@ -45,6 +45,12 @@ export default function ReviewDetail() {
 
       <h2>{review.pr_title}</h2>
 
+      {review.status === 'working' && (
+        <div className="working-notice">
+          ⏳ Agents are reviewing your code. Performance analysis uses a large OSS model — this may take a minute.
+        </div>
+      )}
+
       <h3>Synthesized review</h3>
       {review.summary ? (
         <pre className="summary-box">{review.summary}</pre>

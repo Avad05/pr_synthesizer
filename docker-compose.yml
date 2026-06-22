@@ -41,6 +41,7 @@ services:
       PORT: 5000
       SECURITY_AGENT_URL: http://security-agent:5001
       DATABASE_AGENT_URL: http://database-agent:5002
+      PERFORMANCE_AGENT_URL: http://performance-agent:5003
       GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET}
     depends_on:
       postgres:
@@ -69,6 +70,17 @@ services:
       PORT: 5002
     networks:
       - pr-network
+
+  performance-agent:
+   build: ./agents/performance
+   ports:
+     - "5003:5003"
+   environment:
+     GEMINI_API_KEY: ${GEMINI_API_KEY}
+     OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+     PORT: 5003
+   networks:
+     - pr-network
 
   client:
     build: ./client

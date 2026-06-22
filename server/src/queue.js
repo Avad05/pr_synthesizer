@@ -11,6 +11,7 @@ import { dispatchToAgent } from './a2a-client.js';
 import { postPRComment, formatReviewComment} from './github.js';
 const SECURITY_AGENT_URL = process.env.SECURITY_AGENT_URL || 'http://localhost:5001';
 const DATABASE_AGENT_URL = process.env.DATABASE_AGENT_URL || 'http://localhost:5002';
+const PERFORMANCE_AGENT_URL = process.env.PERFORMANCE_AGENT_URL || 'http://localhost:5003';
 
 export const reviewWorker = new Worker('pr-reviews', async (job) =>{
     const {reviewId, diffUrl, repoName, prNumber} = job.data;
@@ -32,28 +33,32 @@ export const reviewWorker = new Worker('pr-reviews', async (job) =>{
     console.log(`Fetched diff, length: ${diffText.length} chars for review #${reviewId}`);
 
     //Running it through Gemini.
-    const { forSecurity, forDatabase } = splitDiff(diffText);
-    const [securityResult, databaseResult] = await Promise.all([
+    const { forSecurity, forDatabase, forPerformance} = splitDiff(diffText);
+    const [securityResult, databaseResult, performanceResult] = await Promise.all([
       dispatchToAgent(SECURITY_AGENT_URL, forSecurity),
-      dispatchToAgent(DATABASE_AGENT_URL, forDatabase)
+      dispatchToAgent(DATABASE_AGENT_URL, forDatabase),
+      dispatchToAgent(PERFORMANCE_AGENT_URL, forPerformance)
     ]);
     
     const allIssues = [
       ...(securityResult.issues || []),
-      ...(databaseResult.issues || [])
+      ...(databaseResult.issues || []),
+      ...(performanceResult.issues || [])
     ];
 
     const highCount = allIssues.filter(i => i.severity === 'high').length;
     const mediumCount = allIssues.filter(i => i.severity === 'medium').length;
     const lowCount = allIssues.filter(i => i.severity === 'low').length;
 
-    const summaryText = 
-    `SECURITY AGENT:\n${securityResult.summary}\n\nDATABASE AGENT:\n${databaseResult.summary}` +
-    (allIssues.length > 0
-      ? '\n\n' + allIssues
-          .map(i => `[${i.severity.toUpperCase()}] ${i.title}\n${i.description}\n(${i.line_hint})`)
-          .join('\n\n')
-      : '');
+    const summaryText =
+     `SECURITY AGENT:\n${securityResult.summary}\n\n` +
+     `DATABASE AGENT:\n${databaseResult.summary}\n\n` +
+     `PERFORMANCE AGENT (${performanceResult.model_used || 'unknown'}):\n${performanceResult.summary}` +
+     (allIssues.length > 0
+    ? '\n\n' + allIssues
+        .map(i => `[${i.severity.toUpperCase()}] ${i.title}\n${i.description}\n(${i.line_hint})`)
+        .join('\n\n')
+    : '');
       
 
       await pool.query(
@@ -83,6 +88,11 @@ function splitDiff(fullDiff) {
   const secKeywords = ['secret', 'key', 'token', 'password', 'auth',
                        'jwt', 'bcrypt', 'hash', 'env', 'credential', 'log'];
 
+  const perfKeywords = ['for', 'while', 'foreach', 'loop', 'map', 'filter',
+                      'reduce', 'async', 'await', 'settimeout', 'setinterval',
+                      'addeventlistener', 'removeeventlistener', 'useeffect',
+                      'usememo', 'usecallback', 'n+1', 'query'];                     
+
   const dbLines = lines.filter(l =>
     l.startsWith('diff') || l.startsWith('@@') || l.startsWith('---') || l.startsWith('+++') ||
     dbKeywords.some(kw => l.toLowerCase().includes(kw))
@@ -93,9 +103,15 @@ function splitDiff(fullDiff) {
     secKeywords.some(kw => l.toLowerCase().includes(kw))
   );
 
+  const perflines = lines.filter(l =>
+    l.startsWith('diff') || l.startsWith('@@') || l.startsWith('---') || l.startsWith('+++')||
+    perfKeywords.some(kw => l.toLowerCase().includes(kw))
+  );
+
   return {
     forSecurity: secLines.join('\n') || fullDiff,
-    forDatabase: dbLines.join('\n') || fullDiff
+    forDatabase: dbLines.join('\n') || fullDiff,
+    forDatabase: perflines.join('\n') || fullDiff
   };
 }
 

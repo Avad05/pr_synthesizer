@@ -261,6 +261,16 @@ a {
   font-size: 0.85em;
 }
 
+.working-notice {
+  background: var(--surface);
+  border: 1px solid var(--working);
+  color: var(--working);
+  border-radius: 8px;
+  padding: 16px 20px;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  margin-bottom: 20px;
+}
 
 /* ReviewList */
 .list-header {

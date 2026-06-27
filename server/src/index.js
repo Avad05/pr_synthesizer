@@ -17,6 +17,11 @@ app.use('/api/webhooks', express.raw({ type: 'application/json' }));
 // JSON parsing for all other routes
 app.use(express.json());
 
+app.use(cors({
+  origin: ['http://localhost:5173', 'http://172.20.0.7:5173'],
+  credentials: true
+}));
+
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });

@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getReview } from '../api';
 import StatusBadge from './StatusBadge';
+import HealthScore from './HealthScore';
+
 
 export default function ReviewDetail() {
   const { id } = useParams();
@@ -40,7 +42,11 @@ export default function ReviewDetail() {
           <span className="mono">{review.repo_name}</span>{' '}
           <span className="mono pr-number">#{review.pr_number}</span>
         </h1>
-        <StatusBadge status={review.status} />
+        <div className="header-badges">
+          <HealthScore score={review.health_score} />
+          <StatusBadge status={review.status} />
+        </div>
+        
       </div>
 
       <h2>{review.pr_title}</h2>

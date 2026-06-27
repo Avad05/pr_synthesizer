@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getReviews } from '../api';
 import StatusBadge from './StatusBadge';
+import HealthScore from './HealthScore';
+import toast from 'react-hot-toast';
 
 export default function ReviewList() {
   const [reviews, setReviews] = useState([]);
@@ -9,20 +11,55 @@ export default function ReviewList() {
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState('all');
 
-  useEffect(() => {
-    getReviews()
-      .then(setReviews)
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
+ useEffect(() => {
+  getReviews()
+    .then(setReviews)
+    .catch((err) => setError(err.message))
+    .finally(() => setLoading(false));
 
-    // SSE for live updates
-    const eventSource = new EventSource('/api/reviews/stream');
-    eventSource.onmessage = () => {
+  let eventSource;
+
+  function connectSSE() {
+    const SSE_URL = import.meta.env.VITE_API_URL
+      ? `${import.meta.env.VITE_API_URL}/api/reviews/stream`
+      : 'http://localhost:5000/api/reviews/stream';
+
+    eventSource = new EventSource(SSE_URL);
+
+    eventSource.onmessage = (event) => {
+      const update = JSON.parse(event.data);
       getReviews().then(setReviews);
+
+      if (update.status === 'completed') {
+        const highCount = update.highCount || 0;
+        const emoji = highCount > 0 ? '🔴' : '✅';
+        toast(
+          `${emoji} Review #${update.reviewId} completed` +
+          (highCount > 0
+            ? ` — ${highCount} HIGH issue${highCount > 1 ? 's' : ''} found`
+            : ' — No critical issues'),
+          { icon: null }
+        );
+      }
+
+      if (update.status === 'failed') {
+        toast.error(`Review #${update.reviewId} failed`);
+      }
     };
-    eventSource.onerror = () => console.warn('SSE lost');
-    return () => eventSource.close();
-  }, []);
+
+    eventSource.onerror = () => {
+      console.warn('SSE disconnected — reconnecting in 3s...');
+      eventSource.close();
+      setTimeout(connectSSE, 3000); // reconnect
+    };
+  }
+
+  connectSSE();
+
+  return () => {
+    if (eventSource) eventSource.close();
+  };
+}, []);
 
   // Client-side filtering
   const filtered = reviews.filter(r => {
@@ -82,6 +119,7 @@ export default function ReviewList() {
               <th>Issues</th>
               <th>Status</th>
               <th>Opened</th>
+              <th>Health</th>
             </tr>
           </thead>
           <tbody>
@@ -102,6 +140,7 @@ export default function ReviewList() {
                 <td className="mono">
                   {new Date(review.created_at).toLocaleString()}
                 </td>
+                <td><HealthScore score={review.health_score} /></td>
               </tr>
             ))}
           </tbody>

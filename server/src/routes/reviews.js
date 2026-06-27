@@ -26,6 +26,7 @@ export function broadcastReviewUpdate(data) {
   const message = `data: ${JSON.stringify(data)}\n\n`;
   clients.forEach(client => client.write(message));
 }
+
 // GET /api/reviews - list all PR reviews, most recent first
 router.get('/', async (req, res) => {
   try {
@@ -81,8 +82,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-// PATCH /api/reviews/:id - update status/summary as agents report progress
-// Phase 4 and 6 will use this to move status through working -> completed.
+
 router.patch('/:id', async (req, res) => {
   const { status, summary } = req.body;
 
@@ -116,8 +116,7 @@ router.post('/:id/analyze', async (req, res) => {
   }
 
   try {
-    // Mark as working before calling Gemini (this matters more in Phase 6,
-    // but it's good practice now)
+    
     await pool.query(`UPDATE pr_reviews SET status = 'working' WHERE id = $1`, [req.params.id]);
 
     const { issues, summary } = await analyzeDiff(diff);

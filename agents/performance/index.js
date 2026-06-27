@@ -62,7 +62,7 @@ async function callOpenRouter(diff) {
       'X-Title': 'PR Synthesizer Performance Agent'
     },
     body: JSON.stringify({
-      model: 'openai/gpt-oss-20b:free',
+      model: 'openai/gpt-oss-120b',
       messages: [
         { role: 'user', content: PERFORMANCE_PROMPT + '\n\n' + diff }
       ],

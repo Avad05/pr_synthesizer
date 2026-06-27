@@ -72,6 +72,11 @@ export const reviewWorker = new Worker('pr-reviews', async (job) =>{
     const mediumCount = allIssues.filter(i => i.severity === 'medium').length;
     const lowCount = allIssues.filter(i => i.severity === 'low').length;
 
+    const healthScore = Math.max(
+      0,
+      100 - (highCount * 15) - (mediumCount * 7) - (lowCount * 2)
+    );
+
     const summaryText =
      `SECURITY AGENT:\n${securityResult.summary}\n\n` +
      `DATABASE AGENT:\n${databaseResult.summary}\n\n` +
@@ -84,8 +89,8 @@ export const reviewWorker = new Worker('pr-reviews', async (job) =>{
       
 
       await pool.query(
-        `UPDATE pr_reviews SET status = 'completed', summary = $1, high_count = $2, medium_count = $3, low_count = $4, updated_at = now() WHERE id = $5`,
-      [summaryText, highCount, mediumCount, lowCount, reviewId]
+        `UPDATE pr_reviews SET status = 'completed', summary = $1, high_count = $2, medium_count = $3, low_count = $4, health_score = $5, updated_at = now() WHERE id = $6`,
+      [summaryText, highCount, mediumCount, lowCount, healthScore, reviewId]
     );
 
         // Post comment to GitHub PR
@@ -93,7 +98,7 @@ export const reviewWorker = new Worker('pr-reviews', async (job) =>{
     await postPRComment(repoName, prNumber, commentBody);
     console.log(`Posted review comment on ${repoName} PR #${prNumber}`);
 
-    broadcastReviewUpdate({ reviewId, status: 'completed' });
+    broadcastReviewUpdate({ reviewId, status: 'completed', highCount, mediumCount, lowCount, healthScore });
     console.log(`Review #${reviewId} completed. `);
 
     return { reviewId, status: 'completed' };

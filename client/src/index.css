@@ -331,3 +331,48 @@ a {
   border-color: var(--accent);
   color: var(--accent);
 }
+
+/* Health Score */
+
+.health-score {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+}
+
+.health-label {
+  font-size: 0.75rem;
+  font-weight: 400;
+  opacity: 0.8;
+}
+
+.health-good {
+  color: var(--completed);
+}
+
+.health-warn {
+  color: var(--working);
+}
+
+.health-bad {
+  color: var(--failed);
+}
+
+.health-na {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.header-badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  
+}
+

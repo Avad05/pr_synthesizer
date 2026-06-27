@@ -4,6 +4,7 @@ import { getReviews } from '../api';
 import StatusBadge from './StatusBadge';
 import HealthScore from './HealthScore';
 import toast from 'react-hot-toast';
+import AgentCharts from './AgentChart';
 
 export default function ReviewList() {
   const [reviews, setReviews] = useState([]);
@@ -20,11 +21,11 @@ export default function ReviewList() {
   let eventSource;
 
   function connectSSE() {
-    const SSE_URL = import.meta.env.VITE_API_URL
-      ? `${import.meta.env.VITE_API_URL}/api/reviews/stream`
-      : 'http://localhost:5000/api/reviews/stream';
+//    const SSE_URL = import.meta.env.VITE_API_URL
+//      ? `${import.meta.env.VITE_API_URL}/api/reviews/stream`
+//      : 'http://localhost:5000/api/reviews/stream';
 
-    eventSource = new EventSource(SSE_URL);
+    const eventSource = new EventSource('http://localhost:5000/api/reviews/stream');
 
     eventSource.onmessage = (event) => {
       const update = JSON.parse(event.data);
@@ -84,6 +85,7 @@ export default function ReviewList() {
 
   return (
     <div className="review-list">
+      <AgentCharts reviews={reviews} />
       <div className="list-header">
         <h1>Pull request reviews</h1>
         <select

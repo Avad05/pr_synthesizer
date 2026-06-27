@@ -22,6 +22,18 @@ router.get('/stream', (req, res) => {
   });
 });
 
+router.get('/test-sse', (req, res) => {
+  broadcastReviewUpdate({
+    reviewId: 999,
+    status: 'completed',
+    highCount: 3,
+    mediumCount: 1,
+    lowCount: 0
+  });
+  res.json({ sent: true, clients: clients.size });
+});
+
+
 export function broadcastReviewUpdate(data) {
   const message = `data: ${JSON.stringify(data)}\n\n`;
   clients.forEach(client => client.write(message));
@@ -139,5 +151,6 @@ router.post('/:id/analyze', async (req, res) => {
     res.status(500).json({ error: 'Analysis failed', details: err.message });
   }
 });
+
 
 export default router;

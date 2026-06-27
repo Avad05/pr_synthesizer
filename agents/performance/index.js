@@ -14,6 +14,20 @@ const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GE
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
 const PERFORMANCE_PROMPT = `You are a performance-focused code review agent.
+
+You will be given:
+1. RELEVANT CODEBASE CONTEXT — existing code from the repository
+2. The git diff to review
+
+When you find issues, explicitly reference the existing codebase context everytime.
+ For example: "Your existing authController.js uses bcrypt 
+with cost factor 10 — this diff reduces it to 1, breaking your established pattern."
+
+IMPORTANT: Only reference specific files or patterns from the RELEVANT CODEBASE CONTEXT 
+section if they explicitly appear there. Never invent file names, function names, 
+or patterns that aren't shown in the provided context.
+If the context doesn't contain relevant performance patterns, give general advice only.
+
 Analyze this git diff ONLY for:
 - N+1 query patterns (database queries inside loops)
 - O(n²) or worse algorithmic complexity
@@ -48,7 +62,7 @@ async function callOpenRouter(diff) {
       'X-Title': 'PR Synthesizer Performance Agent'
     },
     body: JSON.stringify({
-      model: 'openai/gpt-oss-120b:free',
+      model: 'openai/gpt-oss-20b:free',
       messages: [
         { role: 'user', content: PERFORMANCE_PROMPT + '\n\n' + diff }
       ],
@@ -132,7 +146,7 @@ app.post('/a2a', async (req, res) => {
   const { method, params, id } = req.body;
 
   if (method === 'tasks.create') {
-    const taskId = `task_${Date.now()}`;
+    const taskId = `task_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
     tasks.set(taskId, { id: taskId, status: 'submitted', result: null });
     processTask(taskId, params.diff);
     return res.json({

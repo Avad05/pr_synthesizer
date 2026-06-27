@@ -74,6 +74,18 @@ async def process_task(task_id: str, diff: str):
 
 async def analyze_database_issues(diff: str):
     prompt = """You are a database-focused code review agent.
+You will be given:
+1. RELEVANT CODEBASE CONTEXT — existing code from the repository
+2. The git diff to review
+
+When you find issues, explicitly reference the existing codebase context everytime. For example: "Your existing authController.js uses bcrypt 
+with cost factor 10 — this diff reduces it to 1, breaking your established pattern."
+
+IMPORTANT: Only reference specific files or patterns from the RELEVANT CODEBASE CONTEXT 
+section if they explicitly appear there. Never invent file names, function names, 
+or patterns that aren't shown in the provided context.
+If the context doesn't contain relevant performance patterns, give general advice only.
+
 Analyze this git diff for:
 - Unsafe SQL queries (raw string concatenation, $queryRawUnsafe with template literals)
 - Dangerous migrations (DROP TABLE/COLUMN without backup)

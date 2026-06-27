@@ -1,4 +1,5 @@
 import {Queue, Worker} from 'bullmq';
+import { retrieveRelevantChunks, formatContext } from './retriever.js';
 const connection = { 
       host: process.env.REDIS_HOST || 'localhost',
       port: parseInt(process.env.REDIS_PORT) || 6379
@@ -32,12 +33,33 @@ export const reviewWorker = new Worker('pr-reviews', async (job) =>{
     const diffText = await diffResponse.text();
     console.log(`Fetched diff, length: ${diffText.length} chars for review #${reviewId}`);
 
-    //Running it through Gemini.
-    const { forSecurity, forDatabase, forPerformance} = splitDiff(diffText);
+    const relevantChunks = await retrieveRelevantChunks(repoName, diffText, 5);
+    const context = formatContext(relevantChunks);
+
+    if (relevantChunks.length > 0) {
+      console.log(`Retrieved ${relevantChunks.length} relevant chunks for context`);
+    } else {
+      console.log('No relevant chunks found — proceeding without RAG context');
+    }
+
+    const augmentedDiff = context + diffText;
+
+      //Running it through Gemini.
+    const { forSecurity, forDatabase, forPerformance} = splitDiff(augmentedDiff);
+
     const [securityResult, databaseResult, performanceResult] = await Promise.all([
-      dispatchToAgent(SECURITY_AGENT_URL, forSecurity),
-      dispatchToAgent(DATABASE_AGENT_URL, forDatabase),
-      dispatchToAgent(PERFORMANCE_AGENT_URL, forPerformance)
+      dispatchToAgent(SECURITY_AGENT_URL, forSecurity).catch(err => {
+        console.error('Security agent failed:', err.message);
+        return { issues: [], summary: 'Security agent unavailable.', model_used: 'unavailable' };
+      }),
+      dispatchToAgent(DATABASE_AGENT_URL, forDatabase).catch(err => {
+        console.error('Database agent failed:', err.message);
+        return { issues: [], summary: 'Database agent unavailable.', model_used: 'unavailable' };
+      }),
+      dispatchToAgent(PERFORMANCE_AGENT_URL, forPerformance).catch(err => {
+        console.error('Performance agent failed:', err.message);
+        return { issues: [], summary: 'Performance agent unavailable.', model_used: 'unavailable' };
+      })
     ]);
     
     const allIssues = [
@@ -94,17 +116,17 @@ function splitDiff(fullDiff) {
                       'usememo', 'usecallback', 'n+1', 'query'];                     
 
   const dbLines = lines.filter(l =>
-    l.startsWith('diff') || l.startsWith('@@') || l.startsWith('---') || l.startsWith('+++') ||
+    l.startsWith('diff') || l.startsWith('@@') || l.startsWith('---') || l.startsWith('+++') || l.startsWith('//') || l.startsWith('RELEVANT') ||
     dbKeywords.some(kw => l.toLowerCase().includes(kw))
   );
 
   const secLines = lines.filter(l =>
-    l.startsWith('diff') || l.startsWith('@@') || l.startsWith('---') || l.startsWith('+++') ||
+    l.startsWith('diff') || l.startsWith('@@') || l.startsWith('---') || l.startsWith('+++') || l.startsWith('//') || l.startsWith('RELEVANT') ||
     secKeywords.some(kw => l.toLowerCase().includes(kw))
   );
 
   const perflines = lines.filter(l =>
-    l.startsWith('diff') || l.startsWith('@@') || l.startsWith('---') || l.startsWith('+++')||
+    l.startsWith('diff') || l.startsWith('@@') || l.startsWith('---') || l.startsWith('+++')|| l.startsWith('//') || l.startsWith('RELEVANT') ||
     perfKeywords.some(kw => l.toLowerCase().includes(kw))
   );
 
@@ -122,10 +144,7 @@ reviewWorker.on('completed', (job) => {
 
 reviewWorker.on('failed', (job, err) => {
   console.error(`Job ${job.id} failed:`, err.message);
-  // Update DB to failed status
-  pool.query(
-    `UPDATE pr_reviews SET status = 'failed' WHERE id = $1`,
-    [job.data.reviewId]
-  );
+  console.error('Full error:', err); // ← add this
+  pool.query(`UPDATE pr_reviews SET status = 'failed' WHERE id = $1`, [job.data.reviewId]);
   broadcastReviewUpdate({ reviewId: job.data.reviewId, status: 'failed' });
 });

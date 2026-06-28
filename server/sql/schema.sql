@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS pr_reviews (
   medium_count  INTEGER DEFAULT 0,
   low_count     INTEGER DEFAULT 0,
   health_score  INTEGER DEFAULT NULL,
+  current_step  TEXT DEFAULT NULL,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );

@@ -1,12 +1,14 @@
 import {Queue, Worker} from 'bullmq';
 import { retrieveRelevantChunks, formatContext } from './retriever.js';
+import {broadcastReviewUpdate} from './routes/reviews.js';
+
 const connection = { 
       host: process.env.REDIS_HOST || 'localhost',
       port: parseInt(process.env.REDIS_PORT) || 6379
  };
 
 export const reviewQueue = new Queue('pr-reviews', {connection});
-import { broadcastReviewUpdate } from './routes/reviews.js';
+
 import {pool} from './db.js';
 import { dispatchToAgent } from './a2a-client.js';
 import { postPRComment, formatReviewComment} from './github.js';
@@ -18,9 +20,10 @@ export const reviewWorker = new Worker('pr-reviews', async (job) =>{
     const {reviewId, diffUrl, repoName, prNumber} = job.data;
     
     await pool.query(
-        `UPDATE pr_reviews SET status = 'working' WHERE id = $1`,
+        `UPDATE pr_reviews SET status = 'working', current_step = 'fetching_diff' WHERE id = $1`,
         [reviewId]
     );
+    broadcastReviewUpdate({ reviewId, status: 'working', step: 'fetching_diff' });
     // fetching diff
     const diffResponse = await fetch(diffUrl, {
         headers: {Accept: 'application/vnd.github.v3.diff'}
@@ -32,6 +35,13 @@ export const reviewWorker = new Worker('pr-reviews', async (job) =>{
 
     const diffText = await diffResponse.text();
     console.log(`Fetched diff, length: ${diffText.length} chars for review #${reviewId}`);
+
+    await pool.query(
+      `UPDATE pr_reviews SET current_step = 'retrieving_context' WHERE id = $1`,
+      [reviewId]
+    );
+    broadcastReviewUpdate({ reviewId, status: 'working', step: 'retrieving_context' });
+    
 
     const relevantChunks = await retrieveRelevantChunks(repoName, diffText, 5);
     const context = formatContext(relevantChunks);
@@ -46,6 +56,13 @@ export const reviewWorker = new Worker('pr-reviews', async (job) =>{
 
       //Running it through Gemini.
     const { forSecurity, forDatabase, forPerformance} = splitDiff(augmentedDiff);
+
+    await pool.query(
+      `UPDATE pr_reviews SET current_step = 'agents_running' WHERE id = $1`,
+      [reviewId]
+    );
+    broadcastReviewUpdate({ reviewId, status: 'working', step: 'agents_running' });
+    
 
     const [securityResult, databaseResult, performanceResult] = await Promise.all([
       dispatchToAgent(SECURITY_AGENT_URL, forSecurity).catch(err => {
@@ -68,6 +85,12 @@ export const reviewWorker = new Worker('pr-reviews', async (job) =>{
       ...(performanceResult.issues || [])
     ];
 
+    await pool.query(
+      `UPDATE pr_reviews SET current_step = 'synthesizing' WHERE id = $1`,
+      [reviewId]
+    );
+    broadcastReviewUpdate({ reviewId, status: 'working', step: 'synthesizing' });
+
     const highCount = allIssues.filter(i => i.severity === 'high').length;
     const mediumCount = allIssues.filter(i => i.severity === 'medium').length;
     const lowCount = allIssues.filter(i => i.severity === 'low').length;
@@ -77,28 +100,48 @@ export const reviewWorker = new Worker('pr-reviews', async (job) =>{
       100 - (highCount * 15) - (mediumCount * 7) - (lowCount * 2)
     );
 
-    const summaryText =
-     `SECURITY AGENT:\n${securityResult.summary}\n\n` +
-     `DATABASE AGENT:\n${databaseResult.summary}\n\n` +
-     `PERFORMANCE AGENT (${performanceResult.model_used || 'unknown'}):\n${performanceResult.summary}` +
-     (allIssues.length > 0
-    ? '\n\n' + allIssues
-        .map(i => `[${i.severity.toUpperCase()}] ${i.title}\n${i.description}\n(${i.line_hint})`)
-        .join('\n\n')
-    : '');
-      
+    const structuredSummary = {
+      agents: [
+        {
+          name: 'Security',
+          model: 'gemini-3.1-flash-lite',
+          summary: securityResult.summary,
+          issues: (securityResult.issues || []).map(i => ({ ...i, agent: 'Security' }))
+        },
+        {
+          name: 'Database',
+          model: 'gemini-3.1-flash-lite',
+          summary: databaseResult.summary,
+          issues: (databaseResult.issues || []).map(i => ({ ...i, agent: 'Database' }))
+        },
+        {
+          name: 'Performance',
+          model: performanceResult.model_used || 'unknown',
+          summary: performanceResult.summary,
+          issues: (performanceResult.issues || []).map(i => ({ ...i, agent: 'Performance' }))
+        }
+      ]
+    };
+
+      // Store as JSON string
+     const summaryText = JSON.stringify(structuredSummary);
 
       await pool.query(
-        `UPDATE pr_reviews SET status = 'completed', summary = $1, high_count = $2, medium_count = $3, low_count = $4, health_score = $5, updated_at = now() WHERE id = $6`,
+        `UPDATE pr_reviews SET status = 'completed', current_step = 'completed', summary = $1, high_count = $2, medium_count = $3, low_count = $4, health_score = $5, updated_at = now() WHERE id = $6`,
       [summaryText, highCount, mediumCount, lowCount, healthScore, reviewId]
     );
+
+    broadcastReviewUpdate({ 
+      reviewId, status: 'completed', 
+      highCount, mediumCount, lowCount, healthScore
+    });
 
         // Post comment to GitHub PR
     const commentBody = formatReviewComment(securityResult, databaseResult, performanceResult);
     await postPRComment(repoName, prNumber, commentBody);
     console.log(`Posted review comment on ${repoName} PR #${prNumber}`);
 
-    broadcastReviewUpdate({ reviewId, status: 'completed', highCount, mediumCount, lowCount, healthScore });
+    broadcastReviewUpdate({ reviewId, status: 'completed', step: 'completed', highCount, mediumCount, lowCount, healthScore });
     console.log(`Review #${reviewId} completed. `);
 
     return { reviewId, status: 'completed' };
@@ -138,7 +181,7 @@ function splitDiff(fullDiff) {
   return {
     forSecurity: secLines.join('\n') || fullDiff,
     forDatabase: dbLines.join('\n') || fullDiff,
-    forDatabase: perflines.join('\n') || fullDiff
+    forPerformance: perflines.join('\n') || fullDiff
   };
 }
 

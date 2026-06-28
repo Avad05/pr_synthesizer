@@ -28,36 +28,35 @@ export async function postPRComment(repoFullName, prNumber, body) {
 
 // Formating the comment, so no raw data is sent.
 export function formatReviewComment(securityResult, databaseResult, performanceResult) {
-  const allIssues = [
-    ...(securityResult.issues || []).map(i => ({ ...i, agent: 'Security' })),
-    ...(databaseResult.issues || []).map(i => ({ ...i, agent: 'Database' })),
-    ...(performanceResult.issues || []).map(i => ({ ...i, agent: 'Performance' }))
-
+  const agents = [
+    { name: 'Security', icon: '🛡️', result: securityResult },
+    { name: 'Database', icon: '🛢️', result: databaseResult },
+    { name: 'Performance', icon: '📈', result: performanceResult }
   ];
 
   const severityEmoji = { high: '🔴', medium: '🟡', low: '🟢' };
 
   let comment = `## 🤖 PR Synthesizer Review\n\n`;
 
-  comment += `### Security Agent\n${securityResult.summary}\n\n`;
-  comment += `### Database Agent\n${databaseResult.summary}\n\n`;
-  comment += `### Performance Agent *(${performanceResult.model_used || 'unknown model'})*\n${performanceResult.summary}\n\n`;
+  agents.forEach(({ name, icon, result }) => {
+    comment += `### ${icon} ${name} Agent`;
+    if (result.model_used) comment += ` *(${result.model_used})*`;
+    comment += `\n${result.summary}\n\n`;
 
-  if (allIssues.length > 0) {
-    comment += `### Issues Found\n\n`;
-    allIssues.forEach(issue => {
-      const emoji = severityEmoji[issue.severity] || '⚪';
-      comment += `${emoji} **[${issue.severity.toUpperCase()}] ${issue.title}** *(${issue.agent} Agent)*\n`;
-      comment += `${issue.description}\n`;
-      if (issue.line_hint) comment += `\`${issue.line_hint}\`\n`;
-      comment += '\n';
-    });
-  } else {
-    comment += `### ✅ No issues found\n`;
-  }
+    if (result.issues && result.issues.length > 0) {
+      result.issues.forEach(issue => {
+        const emoji = severityEmoji[issue.severity] || '⚪';
+        comment += `${emoji} **[${issue.severity.toUpperCase()}] ${issue.title}**\n`;
+        comment += `${issue.description}\n`;
+        if (issue.line_hint) comment += `\`${issue.line_hint}\`\n`;
+        comment += '\n';
+      });
+    } else {
+      comment += `✅ No issues found\n\n`;
+    }
+  });
 
-  comment += `---\n*Reviewed by PR Synthesizer — Security & Database powered by Gemini · Performance powered by GPT OSS 120B via OpenRouter*`;
+  comment += `---\n*Reviewed by PR Synthesizer · Security & Database: Gemini · Performance: GPT OSS 120B via OpenRouter*`;
 
   return comment;
-
 }

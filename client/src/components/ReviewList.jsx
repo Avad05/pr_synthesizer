@@ -121,28 +121,30 @@ export default function ReviewList() {
               <th>Issues</th>
               <th>Status</th>
               <th>Opened</th>
-              <th>Health</th>
+              <th>Health (0-100)</th>
             </tr>
           </thead>
           <tbody>
             {filtered.map((review) => (
               <tr key={review.id}>
                 <td className="mono">{review.repo_name}</td>
-                <td>
+                <td data-label="Pull request">
                   <Link to={`/reviews/${review.id}`}>
                     #{review.pr_number} — {review.pr_title}
                   </Link>
                 </td>
-                <td>
+                <td data-label="Issues">
                   <IssueCounts review={review} />
                 </td>
-                <td>
+                <td data-label="Status">
                   <StatusBadge status={review.status} />
                 </td>
-                <td className="mono">
+                <td className="mono" data-label="Opened">
                   {new Date(review.created_at).toLocaleString()}
                 </td>
-                <td><HealthScore score={review.health_score} /></td>
+                <td data-label="Health">
+                  <HealthScore score={review.health_score} />
+                </td>
               </tr>
             ))}
           </tbody>

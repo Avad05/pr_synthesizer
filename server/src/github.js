@@ -47,6 +47,7 @@ export function formatReviewComment(securityResult, databaseResult, performanceR
       result.issues.forEach(issue => {
         const emoji = severityEmoji[issue.severity] || '⚪';
         comment += `${emoji} **[${issue.severity.toUpperCase()}] ${issue.title}**\n`;
+        if (issue.file_path) comment += `📄 \`${issue.file_path}\`\n`;
         comment += `${issue.description}\n`;
         if (issue.line_hint) comment += `\`${issue.line_hint}\`\n`;
         comment += '\n';

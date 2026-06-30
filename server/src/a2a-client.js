@@ -19,7 +19,7 @@ export async function dispatchToAgent(agentBaseUrl, diff) {
 
   // Poll until done
   let attempts = 0;
-  const MAX_ATTEMPTS = 30;
+  const MAX_ATTEMPTS = 60;
 
   while (attempts < MAX_ATTEMPTS) {
     await sleep(1000);

@@ -50,6 +50,11 @@ function StructuredReview({ summary }) {
                     <span className="issue-severity">{issue.severity.toUpperCase()}</span>
                     <span className="issue-title">{issue.title}</span>
                   </div>
+                  {issue.file_path && (
+                    <div className="issue-filepath">
+                      📄 <code>{issue.file_path}</code>
+                    </div>
+                  )}
                   <p className="issue-description">{issue.description}</p>
                   {issue.line_hint && (
                     <code className="issue-hint">{issue.line_hint}</code>

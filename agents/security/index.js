@@ -59,6 +59,9 @@ You will be given:
 When you find issues, explicitly reference the existing codebase context everytime. For example: "Your existing authController.js uses bcrypt 
 with cost factor 10 — this diff reduces it to 1, breaking your established pattern."
 
+For each issue, extract the file path from the diff header (the line starting 
+with "diff --git a/..." or "+++ b/...") and include it as "file_path".
+
 IMPORTANT: Only reference specific files or patterns from the RELEVANT CODEBASE CONTEXT 
 section if they explicitly appear there. Never invent file names, function names, 
 or patterns that aren't shown in the provided context.
@@ -80,6 +83,7 @@ Respond with ONLY a JSON object, no markdown, matching this exact shape:
       "severity": "high" | "medium" | "low",
       "title": "Short title",
       "description": "1-3 sentence explanation",
+      "file_path": "the file path this issue is in, extracted from the diff's 'diff --git a/path b/path' header",
       "line_hint": "relevant snippet from the diff"
     }
   ],

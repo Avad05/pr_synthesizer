@@ -28,6 +28,9 @@ section if they explicitly appear there. Never invent file names, function names
 or patterns that aren't shown in the provided context.
 If the context doesn't contain relevant performance patterns, give general advice only.
 
+For each issue, extract the file path from the diff header (the line starting 
+with "diff --git a/..." or "+++ b/...") and include it as "file_path".
+
 Analyze this git diff ONLY for:
 - N+1 query patterns (database queries inside loops)
 - O(n²) or worse algorithmic complexity
@@ -46,6 +49,7 @@ Respond with ONLY a JSON object, no markdown, matching this exact shape:
       "severity": "high" | "medium" | "low",
       "title": "Short title",
       "description": "1-3 sentence explanation",
+      "file_path": "the file path this issue is in, extracted from the diff's 'diff --git a/path b/path' header",
       "line_hint": "relevant snippet from the diff"
     }
   ],
@@ -113,7 +117,7 @@ async function analyzePerformanceIssues(diff) {
     console.warn(`OpenRouter failed: ${err.message}`);
     console.log('Falling back to Gemini...');
     const result = await callGemini(diff);
-    return { ...result, model_used: 'gemini-2.5-flash (fallback)' };
+    return { ...result, model_used: 'gemini-3.1-flash-lite (fallback)' };
   }
 }
 

@@ -86,6 +86,9 @@ section if they explicitly appear there. Never invent file names, function names
 or patterns that aren't shown in the provided context.
 If the context doesn't contain relevant performance patterns, give general advice only.
 
+For each issue, extract the file path from the diff header (the line starting 
+with "diff --git a/..." or "+++ b/...") and include it as "file_path".
+
 Analyze this git diff for:
 - Unsafe SQL queries (raw string concatenation, $queryRawUnsafe with template literals)
 - Dangerous migrations (DROP TABLE/COLUMN without backup)
@@ -102,6 +105,7 @@ Respond with ONLY a JSON object, no markdown, matching this exact shape:
       "severity": "high" | "medium" | "low",
       "title": "Short title",
       "description": "1-3 sentence explanation",
+      "file_path": "the file path this issue is in, extracted from the diff's 'diff --git a/path b/path' header",
       "line_hint": "relevant snippet from the diff"
     }
   ],

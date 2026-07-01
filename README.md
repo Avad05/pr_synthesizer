@@ -2,7 +2,13 @@
 
 > An automated Pull Request review system powered by a multi-agent AI pipeline.
 
-<img width="800" height="450" alt="pr2-ezgif com-video-to-gif-converter" src="https://github.com/user-attachments/assets/df5e781c-051b-489c-a3aa-de4361204d1a" />
+
+
+https://github.com/user-attachments/assets/a6301d71-c7b4-4182-9987-87a00f7458d7
+
+
+
+
 
 When a developer opens a PR on GitHub, PR Synthesizer automatically analyzes the code diff using **three specialized AI agents** and posts a structured review directly on the PR — while updating a live maintainer dashboard in real time.
 
